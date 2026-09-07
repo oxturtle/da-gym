@@ -217,3 +217,37 @@ Select
 From
     previous_sales
 ;  
+
+/*For each region, 
+show every sale, 
+the previous sale amount, 
+and the percent change from the previous sale.*/
+With previous_sales as (
+    Select
+        salesperson
+        , region
+        , sale_date
+        , sale_amount
+        , Lag(sale_amount) Over(
+            Partition By region
+            Order By sale_date
+        ) as previous_sale_amount
+
+    From
+        sales
+)
+
+Select 
+      salesperson
+    , region 
+    , sale_date
+    , sale_amount
+    , previous_sale_amount
+    , Round(
+        (sale_amount - previous_sale_amount)
+        /previous_sale_amount*100.0, 2
+    ) as sale_change_pct
+
+From
+    previous_sales
+;

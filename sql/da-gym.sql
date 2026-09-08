@@ -37,7 +37,8 @@ With product_sales as (
 		, o.product_name
 ), 
 
-/*Organizes product_revenue and revenue ranking by state
+/*Window Function: sum() Over() and Row_Number() Over() 
+organizes product_revenue and revenue ranking by state
 Row number lets me filter for top 3 products by total revenue*/ 
 ranked_sales as (
 	Select 
@@ -54,7 +55,7 @@ ranked_sales as (
 )
 
 
-/* */
+/* Using both CTEs with Window*/
 Select  
 	  product_name
 	, product_revenue
@@ -250,4 +251,54 @@ Select
 
 From
     previous_sales
+;
+
+/*Lead() | For each region, 
+show every sale and the next sale amount based on sale_date.
+This Window Function allows me to 
+create a field that shows the next row's value(sale_amount)
+and compare to current sale_amount. Thereby having a
+value comparison between two different dates*/
+Select
+      salesperson
+    , region
+    , sale_date
+    , sale_amount
+    , Lead(sale_amount) Over(
+        Partition By region
+        Order By sale_date
+        ) as next_sale_amount
+
+From
+    sales
+;
+
+/*Using Lead() w CTE with calculation for percent change*/
+With next_sales as (
+    Select
+        salesperson
+        , region
+        , sale_date
+        , sale_amount
+        , Lead(sale_amount) Over(
+            Partition By region
+            Order By sale_date
+            ) as next_sale_amount
+
+    From
+        sales
+)
+Select
+      salesperson
+    , region
+    , sale_date
+    , sale_amount
+    , next_sale_amount
+    , Round(
+        (sale_amount - next_sale_amount)/
+      next_sale_amount *100.0,2
+    ) as sale_change_pct
+
+From
+    next_sales
 ;

@@ -302,3 +302,59 @@ Select
 From
     next_sales
 ;
+
+/*First_Value() and Last_Value
+For each region, 
+show every sale and 
+the first sale amount in that region based on sale_date.*/
+Select
+      salesperson
+    , region
+    , sale_date
+    , sale_amount
+    , First_Value(sale_amount) Over(
+        Partition By region
+        Order By sale_date
+    ) as first_sale_amount
+
+From
+    sales
+;
+
+--Drill for Last_Value()
+Select
+      salesperson
+    , region
+    , sale_date
+    , sale_amount
+    , Last_Value(sale_amount) Over(
+        Partition By region
+        Order By sale_date
+        Rows Between Unbounded Preceding
+        and Unbounded Following
+    ) as last_sale_amount
+
+From
+    sales
+;
+
+
+/*For each region, 
+show every sale and the average sale_amount from 
+the current row and the two previous rows, 
+based on sale_date.*/
+Select
+      salesperson
+    , region
+    , sale_date
+    , sale_amount
+    , Avg(sale_amount) Over(
+        Partition By region
+        Order By sale_date
+        Rows Between 2 Preceding
+        and Current Row
+    ) as moving_avg_3_sales
+
+From
+    sales
+;

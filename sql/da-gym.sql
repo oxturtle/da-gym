@@ -359,4 +359,18 @@ From
     sales
 ;
 
+/*Show every order 
+with the customer’s name and state.*/
 
+Select
+      o.order_id
+    , o.order_date
+    , o.order_total
+    , s.customer_name
+    , s.state
+
+From
+    orders o
+        left join customers s
+            on o.customer_id=s.customer_id
+;

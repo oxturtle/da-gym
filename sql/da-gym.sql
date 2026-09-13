@@ -374,3 +374,60 @@ From
         left join customers s
             on o.customer_id=s.customer_id
 ;
+
+
+/*For each state, 
+show the total number of orders and total revenue.
+For this ques. I'd want to preserve customers-
+dataset becuase it's about state metrics.
+total number of orders and total revenue are
+based off of each state.*/
+
+Select
+      c.state
+    , count(o.order_id) as order_count
+    , sum(o.order_total) as total_revenue
+
+From
+    customers c
+        left join orders o
+            on c.customer_id=o.customer_id
+
+Group By    
+    c.state
+;
+
+
+/*For each state, 
+show total revenue, 
+then identify only the states 
+whose total revenue 
+is above the average state revenue.*/
+
+With state_revenue as (
+    Select
+        c.state
+        , sum(o.order_total) as total_revenue
+
+    From
+        customers c
+            left join orders o
+                on c.customer_id=o.customer_id
+    Group By 
+        c.state
+    )
+
+Select
+      state
+    , total_revenue
+From
+    state_revenue
+
+Where
+    total_revenue > (
+        Select
+            avg(total_revenue)
+        From
+            state_revenue
+        )
+;

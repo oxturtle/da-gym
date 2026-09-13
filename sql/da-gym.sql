@@ -431,3 +431,148 @@ Where
             state_revenue
         )
 ;
+
+/*For each feature,
+show how many unique users used it.
+users
+----------------
+user_id
+user_name
+state
+
+features
+----------------
+feature_id
+feature_name
+
+feature_events
+----------------
+event_id
+user_id
+feature_id
+event_date
+---I'd preserve features due to business ques.
+*/
+
+With unique_count as (
+    Select
+        f.feature_name 
+        , count(distinct fe.user_id) unique_users
+
+    From
+        features f
+            left join feature_events fe
+                on f.feature_id=fe.feature_id
+
+    Group By
+        f.feature_name
+    )
+
+Select
+      feature_name
+    , unique_users
+
+From
+    unique_count
+
+Where   
+    unique_users > (
+        Select
+            avg(unique_users)
+        From
+            unique_count
+    )
+;
+
+
+With total_revenue as (
+    Select
+          c.state
+        , sum(o.order_total) sum_revenue
+        
+    From
+        customers c
+            left join orders o
+                on c.customer_id=o.customer_id
+
+    Group By
+        c.state
+)
+
+Select
+      state
+    , sum_revenue 
+
+From
+    total_revenue
+
+Where
+    sum_revenue > (
+        Select
+            avg(sum_revenue)
+        From
+            total_revenue
+    )
+;
+
+/*Calculate total spend per customer, 
+then return only customers whose total spend is 
+above the average customer spend.*/
+With customer_spend as (
+    Select
+          c.customer_id  as customer 
+        , sum(o.order_total) as  customer_total_spend         
+    From
+        customers c 
+            left join orders o 
+                on c.customer_id=o.customer_id
+    Group By
+        c.customer_id
+)
+
+Select
+      customer
+    , customer_total_spend
+From    
+    customer_spend 
+
+Where
+    customer_total_spend > (
+        Select
+            avg(customer_total_spend)
+        From
+            customer_spend 
+    )
+;
+
+/*For each product, 
+calculate total revenue, 
+then return only products whose total revenue is 
+below the average product revenue.*/
+With product_total_rev as (
+    Select
+        p.product_id as product 
+        , sum(oi.quantity*oi.unit_price) total_revenue    
+    From
+        products p
+            left join order_items oi
+                on p.product_id=oi.product_id
+    Group By
+        p.product_id
+)
+
+Select
+      product
+    , total_revenue
+
+From
+    product_total_rev
+
+Where
+    total_revenue < (
+        Select
+            avg(total_revenue)
+        From
+            product_total_rev
+    )
+;

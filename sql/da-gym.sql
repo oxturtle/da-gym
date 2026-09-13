@@ -576,3 +576,64 @@ Where
             product_total_rev
     )
 ;
+
+
+/* One-to-many relationship + join reasoning 
+customers
+----------------
+customer_id
+customer_name
+
+orders
+----------------
+order_id
+customer_id
+order_date
+
+order_items
+----------------
+order_item_id
+order_id
+product_id
+quantity
+unit_price
+----------------
+----------------
+Show each customer's total revenue across all of their orders.
+*/
+
+Select
+      c.customer_id as customer 
+    , sum(oi.quantity * oi.unit_price) as total_revenue 
+
+From
+    customers c 
+        left join orders o
+            on c.customer_id=o.customer_id
+        left join order_items oi
+            on o.order_id=oi.order_id 
+
+Group By
+    c.customer_id 
+;
+
+
+/*For each state and product, show total revenue*/
+Select
+      c.state
+    , p.product_id as product 
+    , sum(oi.quantity*oi.unit_price) as total_revenue
+
+From
+    customers c
+        left join orders o
+            on c.customer_id=o.customer_id
+        left join order_items oi
+            on o.order_id=oi.order_id
+        left join products p 
+            on oi.product_id=p.product_id
+
+Group By
+      c.state
+    , p.product_id
+;

@@ -637,3 +637,155 @@ Group By
       c.state
     , p.product_id
 ;
+
+/*Show every customer, 
+including customers who have never placed an order, 
+and show their total spend if they have any
+
+Trace metric to entity:
+policies
+----------------
+policy_id
+customer_id
+policy_type
+
+claims
+----------------
+claim_id
+policy_id
+claim_amount
+claim_date
+
+Result = show total claim amount by policy type 
+
+
+above-average cust spend:
+customers
+----------------
+customer_id
+customer_name
+
+orders
+----------------
+order_id
+customer_id
+order_total
+
+Show customers whose total spend is 
+above the average total spend across all customers
+*/
+
+With cust_total_spend as (
+        Select
+              c.customer_id as customer
+            , coalesce(sum(o.order_total), 0) as total_spend
+        From
+            customers c
+                left join orders o
+                    on c.customer_id=o.customer_id
+        Group By
+            c.customer_id
+    )
+
+Select
+      customer 
+    , total_spend
+ 
+
+From 
+    cust_total_spend
+
+Where
+    total_spend > (
+        Select 
+            avg(total_spend)
+        From
+            cust_total_spend
+    )
+;
+
+/* Compare each policy to its type average: 
+policies
+----------------
+policy_id
+policy_type
+premium_amount
+
+Show every policy, 
+its premium amount, 
+and the average premium for that policy type
+*/
+
+Select 
+      policy_id as policy 
+    , policy_type
+    , premium_amount
+    , avg(premium_amount) Over(
+        Partition By policy_type
+    ) as avg_premium
+
+From
+    policies 
+;
+
+/*Show each customer’s total spend 
+and rank customers from highest to lowest spend 
+within their state.*/
+
+With cust_total_spend as (
+    Select
+          c.state
+        ,  c.customer_id as customer 
+        , sum(o.order_total) cust_total_spend
+    From
+        customers c
+            left join orders o
+                on c.customer_id=o.customer_id
+    Group By
+          c.state
+        , c.customer_id
+)
+
+Select
+      customer
+    , cust_total_spend
+    , Rank() Over(
+        Partition By state
+        Order By cust_total_spend desc
+    )
+
+From   
+    cust_total_spend
+;
+
+/*For each state and feature, 
+show the number of unique users who used that feature, 
+then rank features from most-used to least-used within each state.*/
+
+With unique_used_count as (
+    Select
+          u.state
+        , f.feature_name
+        , count(distinct fe.user_id) as used_count
+    From
+        users u
+            left join feature_events fe 
+                on u.user_id=fe.user_id
+            left join features f 
+                on fe.feature_id=f.feature_id
+    Group By 
+          u.state 
+        , f.feature_name
+)
+
+Select
+      state
+    , feature_name feature 
+    , used_count
+    , Rank() Over(
+        Partition By state
+        Order By used_count desc
+    )
+From    
+    unique_used_count
+;

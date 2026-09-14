@@ -789,3 +789,74 @@ Select
 From    
     unique_used_count
 ;
+
+/*Show policy types 
+whose average claim amount is
+ above the average claim amount across all policy types.*/
+With avg_claim_amount as (
+    Select
+        p.policy_type
+        , avg(c.claim_amount) avg_claim
+    From
+        policies p
+            left join claims c
+                on p.policy_id=c.policy_id
+    Group By
+        p.policy_type
+)
+
+Select
+      policy_type
+    , avg_claim
+
+From
+    avg_claim_amount
+
+Where
+    avg_claim > (
+        Select
+             avg(avg_claim)
+        From 
+            avg_claim_amount
+    )
+;
+
+/*Show the total number of orders for each state.*/
+Select
+      c.state
+    , count(o.order_id)
+From
+    customers c
+        left join orders o 
+            on c.customer_id=o.customer_id
+Group By 
+    c.state 
+; 
+
+/*
+Grain = one row per Nevada customer
+Entity location = customers
+Metric = total spend
+Join path = customers left join orders
+calculation: sum(order_total)
+Filters = yes
+I'll need Having order_total > $1,000  
+*/
+Select
+      c.customer_id customer 
+    , sum(o.order_total) total_spend
+From
+    customers c
+        left join orders o
+            on c.customer_id=o.customer_id
+
+Where
+    c.state = 'NV'
+
+Group By
+    c.customer_id
+
+Having
+    sum(o.order_total) > 1000
+;
+

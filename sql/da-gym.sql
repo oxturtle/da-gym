@@ -860,3 +860,26 @@ Having
     sum(o.order_total) > 1000
 ;
 
+/*Average salary for each department
+employees
+----------------
+employee_id
+department
+salary
+
+Grain = one row per department 
+entity = employees 
+metric = average salary 
+calculation = avg(salary)
+No join needed due to only worlking with one dataset
+No CTE needed
+No Window Function needed
+Group By Department
+*/
+Select
+      e.department
+    , avg(e.salary) avg_salary
+
+From
+    employees e
+;

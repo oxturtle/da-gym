@@ -883,3 +883,86 @@ Select
 From
     employees e
 ;
+
+
+/*
+customers
+----------------
+customer_id
+state
+
+orders
+----------------
+order_id
+customer_id
+order_total
+
+Show Revenue by state
+
+Grain: One row per state
+Entity Location: customers table
+Metric: total order_total
+Metric Location: orders table
+Join Path: customers left join orders on customer_id 
+calcualtion: sum(order_total)
+Group By c.state
+CTE not needed
+No window function
+*/
+
+Select
+      c.state
+    , sum(o.order_total) as total_revenue
+
+From
+    customers c 
+        left join orders o
+            on c.customer_id=o.customer_id
+
+Group By
+    c.state
+;
+
+
+/*
+customers
+----------------
+customer_id
+state
+
+orders
+----------------
+order_id
+customer_id
+order_total
+
+Show total revenue by state for orders placed in 2026. 
+
+Grain: one row per state
+Entity Location: customers table 
+Metric: total of order_total
+Metric Location: orders table
+Join path: customers left join orders on customer_id to order_date
+Calculation: sum(order_total)
+Filter: orders placed in 2026
+Where for the filter 
+Group By state
+No need for CTE or window function
+*/
+
+Select
+      c.state 
+    , sum(order_total) as total_revenue
+
+From
+    customers c
+        left join orders o
+            on c.customer_id=o.customer_id 
+
+Where
+    o.order_date >= '2026-01-01'
+    and o.order_date < '2027-01-01'
+
+Group By
+    c.state
+;

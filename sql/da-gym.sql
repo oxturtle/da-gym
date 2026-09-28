@@ -966,3 +966,25 @@ Where
 Group By
     c.state
 ;
+
+=xlookup(
+    "Three Square",
+    JobSearch[Company],
+    JobSearch[Fit_Rating]
+)
+
+/*
+Return the Fit_Rating for the compnay "Three Square".
+
+function": XLOOKUP
+LOOKUP value: "Three Square"
+lookup/search column: Company 
+return column: Fit_Rating 
+Result appear: within cell I enter the =XLOOKUP formula 
+*/
+
+function: XLOOKUP
+LOOKUP value: "Las Vegas Sands"
+search column: JobSearch[Compnay]
+return column: JobSearch[Salary_Max]
+if no match return: "Not Found" 

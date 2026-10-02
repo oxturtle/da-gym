@@ -967,24 +967,51 @@ Group By
     c.state
 ;
 
-=xlookup(
-    "Three Square",
-    JobSearch[Company],
-    JobSearch[Fit_Rating]
-)
 
-/*
-Return the Fit_Rating for the compnay "Three Square".
 
-function": XLOOKUP
-LOOKUP value: "Three Square"
-lookup/search column: Company 
-return column: Fit_Rating 
-Result appear: within cell I enter the =XLOOKUP formula 
+
+/*Show the avg order value for each state.
+Grain: one state per row 
+Entity Location: customers 
+Metric: avg order_total
+Metric Location: orders table 
+Join path: customers left join orders 
+Calculation: avg(order_total)
+Group By: state
+Neither: CTE or window function 
+
+Show each customer their total spending, 
+along with the average total spending of customers in their state.
+Grain: one row per customer 
+Entity location: customers becuase that where each customer is.
+Metrics: total spending 
+Metrics Location: orders table becuase that's where order_total is.
+Join path: customers left join orders
+First transformations: Calculate order totals spending, then find average spending per state.
+CTE first finding the sum of each customer's total spending, then Window Function to
+create a new column that has the avg spending for each state. 
+
 */
 
-function: XLOOKUP
-LOOKUP value: "Las Vegas Sands"
-search column: JobSearch[Compnay]
-return column: JobSearch[Salary_Max]
-if no match return: "Not Found" 
+with cust_total_spend as (
+    Select 
+          c.customer_id
+        , c.state
+        , sum(o.order_total) customer_total_spend
+    From
+        customers c
+            left join orders o
+                on c.customer_id=o.customer_id
+    Group Byadd
+        c.customer_id
+)
+
+Select
+      c.customer_id customer 
+    , customer_total_spend
+    , avg(customer_total_spend) Over(
+        Partition By c.state  
+    )
+
+From
+    cust_total_spend

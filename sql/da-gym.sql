@@ -1002,7 +1002,7 @@ with cust_total_spend as (
         customers c
             left join orders o
                 on c.customer_id=o.customer_id
-    Group Byadd
+    Group By
         c.customer_id
 )
 
@@ -1015,3 +1015,141 @@ Select
 
 From
     cust_total_spend
+
+
+
+
+WITH cust_total_spend AS (
+    SELECT
+          c.customer_id
+        , c.state
+        , SUM(o.order_total) AS customer_total_spend
+    FROM customers c
+    LEFT JOIN orders o
+        ON c.customer_id = o.customer_id
+    GROUP BY
+          c.customer_id
+        , c.state
+)
+
+SELECT
+      customer_id AS customer
+    , customer_total_spend
+    , AVG(customer_total_spend) OVER (
+          PARTITION BY state
+      ) AS state_avg_customer_spend
+FROM cust_total_spend;
+
+/*Show each state's total revenue for orders placed in 2026,
+but only include states with more than $100K in revenue.
+Grain: one state per row
+Entity Location:customers because state is found in that table
+Metric: each state's total revenue 
+Metric Location: orders
+Join path: customers left join orders
+Filter(s): order_date within 2026 and total revenue >$100K 
+Group By: state
+Where or Having: Having; order_total >$100,000
+CTE, Window Function, or nah?: nah
+
+Show each customer’s total spending in 2026, 
+and rank customers within their state from 
+highest to lowest total spending. 
+Only include customers whose total spending exceeds $5,000.
+Grain: one customer per row
+Entity location: customers table
+Metric: total spending
+Metric Location: Orders
+Join path: customers left join orders
+Gets filtered before aggregation: Where time is in 2026
+Gets filtered after aggregation: sum(order_total)
+What transformation has to happen first:have to get the sum order_total
+CTE, Window func, or neither: CTE and Window function 
+Which window function?*/
+
+with cust_total_spend as (
+    Select
+          c.customer_id customer
+        , c.state
+        , sum(o.order_total) total_spend
+    From
+        customers c 
+            left join orders o
+                on c.customer_id=o.customer_id
+    Where
+        order_date >='01-01-2026'
+        and order_date <= '01-01-2027'
+    Group By    
+          c.customer_id
+        , c.state
+    Having
+        sum(o.order_total) > 5000
+)
+
+Select
+      customer
+    , state
+    , total_spend
+    , Rank() Over(
+        Partition By state 
+        Order By total_spend desc
+    ) as state_rank
+From
+    cust_total_spend
+    
+
+/*For each state,
+show the customer with 
+the highest total spending in 2026
+Grain: One state per row
+Entity Location: customers
+Metric: highest total spneding
+Metric location: orders
+Join path: customers left join orders
+filter before aggregation: Where order_date >='01-01-2026' AND order_date <= '01-01-2027'
+First Transformation: one customer per row
+CTE, Win Funct, nah, or both: CTE
+Window Function
+Final filtering step: order by sum(order_total)*/
+
+
+with cust_total_spend as (
+    Select
+          c.customer_id
+        , c.state
+        , sum(o.order_total) customer_spend
+    From
+        customers c
+            left join orders o
+                on c.customer_id=o.customer_id
+    Where
+        o.order_date >= '01-01-2026'
+        and o.order_date < '01-01-2027'
+
+    Group By
+          c.customer_id
+        , c.state
+),
+
+ranked_customers as (
+Select
+      customer_id 
+    , state
+    , customer_spend
+    , Rank() Over(
+        Partition By state
+        Order By customer_spend desc
+    ) as state_rank
+From
+    cust_total_spend
+)
+
+Select
+      state
+    , customer_id
+    , customer_spend
+From
+    ranked_customers 
+Where
+    state_rank = 1
+;
